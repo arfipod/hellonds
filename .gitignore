@@ -1,0 +1,24 @@
+# BlocksDS / Nintendo DS build output
+build/
+*.nds
+*.elf
+*.map
+*.o
+*.d
+
+# Optional emulator/runtime files
+*.sav
+*.dsv
+*.srm
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*~
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
