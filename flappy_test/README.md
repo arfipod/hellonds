@@ -13,6 +13,15 @@ controls.
 - START: pause or resume while playing
 - SELECT: return to the title screen after a game over
 
+## Architecture
+
+- `source/main.c`: Nintendo DS setup, framebuffer/console creation, and the
+  frame loop.
+- `source/flappy_game.*`: game state, input rules, physics, scoring, collision,
+  and pipe recycling.
+- `source/flappy_render.*`: top-screen framebuffer drawing, tiny bitmap font,
+  overlays, and bottom-screen HUD caching.
+
 ## Build Instructions
 
 From this directory:
