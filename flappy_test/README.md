@@ -37,6 +37,39 @@ Expected output:
 flappy_test.nds
 ```
 
+To open the ROM with melonDS from the repository root:
+
+```bash
+scripts/run_melonds.sh flappy_test
+```
+
+The script first uses
+`~/.local/share/hellonds/emulators/melonds/1.1/melonDS`, then a local `melonDS`
+or `melonds` executable, the executable set in `MELONDS_BIN`, or the Flatpak app
+`net.kuribo64.melonDS` if installed. Download melonDS from
+<https://melonds.kuribo64.net/downloads.php> or install it with:
+
+```bash
+flatpak install flathub net.kuribo64.melonDS
+```
+
+For the official Ubuntu x86_64 ZIP, this repository expects the extracted
+binary at `~/.local/share/hellonds/emulators/melonds/1.1/melonDS`. On Ubuntu
+24.04/Noble, install the runtime libraries if melonDS reports missing shared
+objects:
+
+```bash
+sudo apt-get install -y libqt6core6t64 libqt6gui6t64 libqt6network6t64 libqt6widgets6t64 libqt6multimedia6 libenet7 libfaad2
+```
+
+To capture the running emulator window for visual verification:
+
+```bash
+scripts/capture_melonds.sh flappy_test
+```
+
+The default screenshot is written to `captures/flappy_test_melonds.png`.
+
 Copy `flappy_test.nds` to your Nintendo DS or DSi SD card and launch it with
 your preferred homebrew loader, such as TWiLight Menu++.
 

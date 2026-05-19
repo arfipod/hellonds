@@ -1,65 +1,99 @@
-# Evangelio NDS
+# Gospel NDS
 
-Lector de los cuatro evangelios para Nintendo DS, construido con BlocksDS y los
-JSON de `res` en la version de la Conferencia Episcopal Espanola.
+A four-gospel reader for Nintendo DS, built with BlocksDS and the JSON files in
+`res` using the Spanish Episcopal Conference text.
 
-Firma: Angel R.
+Signature: Angel R.
 
-## Modos
+## Modes
 
-- Lectura seguida: empieza en Mateo 1,1 y avanza versiculo a versiculo por los
-  cuatro evangelios.
-- Buscar por cita: selector de evangelio, capitulo y versiculo.
-- Evangelio al azar: abre una cita aleatoria.
-- Modo libro: usa las dos pantallas como paginas completas con varios
-  versiculos.
+- Continuous reading: starts at Matthew 1:1 and advances verse by verse through
+  the four gospels.
+- Citation search: selector for gospel, chapter, and verse.
+- Random gospel: opens a random citation.
+- Book mode: uses both screens as full pages with multiple verses.
 
-## Controles
+## Controls
 
-- Menu: `A` lectura seguida, `B` buscar por cita, `X` cita aleatoria, `Y` modo
-  libro.
-- Lector: `A`, `R` o derecha para avanzar; `L` o izquierda para retroceder;
-  arriba/abajo para desplazar textos largos; `Y` alterna modo libro; `SELECT`
-  busca cita; `B` vuelve al menu.
-- Modo libro: `A`, `R` o derecha pasan pagina; `L` o izquierda vuelven pagina;
-  `Y` vuelve al lector normal; `SELECT` busca cita; `X` cita aleatoria; `B`
-  vuelve al menu.
-- Buscador: izquierda/derecha cambia el campo, arriba/abajo ajusta el valor,
-  `L`/`R` hacen saltos rapidos, `A` abre la cita, `Y` la abre en modo libro.
+- Menu: `A` continuous reading, `B` citation search, `X` random citation, `Y`
+  book mode.
+- Reader: `A`, `R`, or right advances; `L` or left goes back; up/down scroll
+  long text; `Y` toggles book mode; `SELECT` opens citation search; `B` returns
+  to the menu.
+- Book mode: `A`, `R`, or right turns the page forward; `L` or left turns the
+  page back; `Y` returns to the normal reader; `SELECT` opens citation search;
+  `X` opens a random citation; `B` returns to the menu.
+- Search: left/right changes the field, up/down adjusts the value, `L`/`R`
+  make larger jumps, `A` opens the citation, and `Y` opens it in book mode.
 
-## Arquitectura
+## Architecture
 
-- `source/main.c`: arranque de hardware, timers, lectura de botones y bucle
-  principal.
-- `source/gospel_app.*`: maquina de estados de la aplicacion, menus, lector,
-  modo libro y buscador.
-- `source/gospel_text.*`: ajuste de texto a 31 columnas y composicion de
-  paginas de dos pantallas.
-- `source/gospel_console.*`: inicializacion de consola y glifo personalizado
-  para la eñe.
-- `source/gospel_random.*`: generador pseudoaleatorio y mezcla de entropia de
-  timers/input.
-- `source/gospel_data.*`: datos generados a partir de los JSON de `res`.
-- `tools/generate_gospel_data.py`: regenerador de `gospel_data.c`.
+- `source/main.c`: hardware startup, timers, button scanning, and the main loop.
+- `source/gospel_app.*`: application state machine, menus, reader, book mode,
+  and citation search.
+- `source/gospel_text.*`: text wrapping to 31 columns and two-screen page
+  composition.
+- `source/gospel_console.*`: console initialization and the custom enye glyph.
+- `source/gospel_random.*`: pseudo-random generator and timer/input entropy
+  mixing.
+- `source/gospel_data.*`: generated data from the JSON files in `res`.
+- `tools/generate_gospel_data.py`: regenerates `gospel_data.c`.
 
-## Generar datos y compilar
+## Generate Data And Build
 
-Si cambias los JSON, regenera la tabla C:
+If you change the JSON files, regenerate the C table:
 
 ```bash
 python3 tools/generate_gospel_data.py
 ```
 
-Compila desde esta carpeta:
+Build from this directory:
 
 ```bash
 make clean
 make
 ```
 
-El resultado esperado es `gospel_nds.nds`.
+Expected output:
 
-Si el entorno no esta cargado:
+```text
+gospel_nds.nds
+```
+
+To open the ROM with melonDS from the repository root:
+
+```bash
+scripts/run_melonds.sh gospel_nds
+```
+
+The script first uses
+`~/.local/share/hellonds/emulators/melonds/1.1/melonDS`, then a local `melonDS`
+or `melonds` executable, the executable set in `MELONDS_BIN`, or the Flatpak app
+`net.kuribo64.melonDS` if installed. Download melonDS from
+<https://melonds.kuribo64.net/downloads.php> or install it with:
+
+```bash
+flatpak install flathub net.kuribo64.melonDS
+```
+
+For the official Ubuntu x86_64 ZIP, this repository expects the extracted
+binary at `~/.local/share/hellonds/emulators/melonds/1.1/melonDS`. On Ubuntu
+24.04/Noble, install the runtime libraries if melonDS reports missing shared
+objects:
+
+```bash
+sudo apt-get install -y libqt6core6t64 libqt6gui6t64 libqt6network6t64 libqt6widgets6t64 libqt6multimedia6 libenet7 libfaad2
+```
+
+To capture the running emulator window for visual verification:
+
+```bash
+scripts/capture_melonds.sh gospel_nds
+```
+
+The default screenshot is written to `captures/gospel_nds_melonds.png`.
+
+If the environment is not already loaded:
 
 ```bash
 source /opt/wonderful/bin/wf-env

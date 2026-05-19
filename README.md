@@ -92,7 +92,45 @@ Expected result:
 
 ---
 
-## 2. Build the plain HTTP project
+## 2. Emulator workflow
+
+Use melonDS for local ROM checks:
+
+```bash
+scripts/run_melonds.sh flappy_test
+scripts/run_melonds.sh gospel_nds
+```
+
+The repository expects the official melonDS 1.1 Ubuntu x86_64 binary at:
+
+```text
+~/.local/share/hellonds/emulators/melonds/1.1/melonDS
+```
+
+If the binary is not there, download the official ZIP from:
+
+```text
+https://melonds.kuribo64.net/downloads/melonDS-1.1-ubuntu-x86_64.zip
+```
+
+On Ubuntu 24.04/Noble, install the runtime libraries with:
+
+```bash
+sudo apt-get install -y libqt6core6t64 libqt6gui6t64 libqt6network6t64 libqt6widgets6t64 libqt6multimedia6 libenet7 libfaad2
+```
+
+For visual checks, capture the emulator window:
+
+```bash
+scripts/capture_melonds.sh flappy_test
+scripts/capture_melonds.sh --output captures/gospel.png --delay 3 gospel_nds
+```
+
+Screenshots are written under `captures/`, which is ignored by Git.
+
+---
+
+## 3. Build the plain HTTP project
 
 ```bash
 cd dsi_rest_http
@@ -124,7 +162,7 @@ Change it in `dsi_rest_http/source/main.c`:
 
 ---
 
-## 3. Install HTTPS dependencies
+## 4. Install HTTPS dependencies
 
 For HTTPS/libcurl:
 

@@ -12,6 +12,7 @@ build/
 *.srm
 
 # Logs and temporary files
+captures/
 *.log
 *.tmp
 *.bak
