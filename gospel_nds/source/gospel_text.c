@@ -44,12 +44,14 @@ static void add_wrapped_line(GospelLine lines[], int *count, int max_lines,
     (*count)++;
 }
 
-int gospel_wrap_text(const char *text, GospelLine lines[], int max_lines)
+int gospel_wrap_text_width(const char *text, GospelLine lines[], int max_lines, int cols)
 {
     int count = 0;
     const char *line = text;
     int line_len = 0;
     int last_space = -1;
+
+    cols = gospel_clamp_int(cols, 1, GOSPEL_LINE_LEN - 1);
 
     for (const char *p = text;; p++)
     {
@@ -71,9 +73,9 @@ int gospel_wrap_text(const char *text, GospelLine lines[], int max_lines)
         if (c == ' ')
             last_space = line_len;
 
-        if (line_len >= GOSPEL_TEXT_COLS)
+        if (line_len >= cols)
         {
-            int cut = last_space > 0 ? last_space : GOSPEL_TEXT_COLS;
+            int cut = last_space > 0 ? last_space : cols;
             add_wrapped_line(lines, &count, max_lines, line, cut);
 
             line += cut;
@@ -94,7 +96,13 @@ int gospel_wrap_text(const char *text, GospelLine lines[], int max_lines)
     return count;
 }
 
-static int append_verse_lines(int verse_index, GospelLine lines[], int count, int limit)
+int gospel_wrap_text(const char *text, GospelLine lines[], int max_lines)
+{
+    return gospel_wrap_text_width(text, lines, max_lines, GOSPEL_TEXT_COLS);
+}
+
+static int append_verse_lines(int verse_index, GospelLine lines[], int count, int limit,
+                              int cols)
 {
     const GospelVerse *verse = &gospel_verses[verse_index];
     GospelLine title;
@@ -104,7 +112,8 @@ static int append_verse_lines(int verse_index, GospelLine lines[], int count, in
     if (count < limit)
         gospel_copy_line(lines[count++], title);
 
-    int wrapped_count = gospel_wrap_text(verse->text, wrapped, GOSPEL_MAX_LINES);
+    int wrapped_count = gospel_wrap_text_width(verse->text, wrapped, GOSPEL_MAX_LINES,
+                                               cols);
     for (int i = 0; i < wrapped_count && count < limit; i++)
         gospel_copy_line(lines[count++], wrapped[i]);
 
@@ -114,8 +123,8 @@ static int append_verse_lines(int verse_index, GospelLine lines[], int count, in
     return count;
 }
 
-void gospel_build_page_lines(int start_index, GospelLine lines[], int max_lines,
-                             int *line_count, int *next_index)
+void gospel_build_page_lines_width(int start_index, GospelLine lines[], int max_lines,
+                                   int cols, int *line_count, int *next_index)
 {
     int count = 0;
     int index = gospel_clamp_int(start_index, 0, gospel_verse_count - 1);
@@ -123,7 +132,8 @@ void gospel_build_page_lines(int start_index, GospelLine lines[], int max_lines,
     while (index < gospel_verse_count)
     {
         GospelLine verse_lines[GOSPEL_MAX_LINES];
-        int verse_line_count = append_verse_lines(index, verse_lines, 0, GOSPEL_MAX_LINES);
+        int verse_line_count = append_verse_lines(index, verse_lines, 0, GOSPEL_MAX_LINES,
+                                                  cols);
 
         if (count > 0 && count + verse_line_count > max_lines)
             break;
@@ -140,18 +150,26 @@ void gospel_build_page_lines(int start_index, GospelLine lines[], int max_lines,
     *next_index = index >= gospel_verse_count ? 0 : index;
 }
 
-static int page_end_for_start(int start_index)
+void gospel_build_page_lines(int start_index, GospelLine lines[], int max_lines,
+                             int *line_count, int *next_index)
 {
-    GospelLine scratch[GOSPEL_PAGE_TOTAL_TEXT_ROWS];
+    gospel_build_page_lines_width(start_index, lines, max_lines, GOSPEL_TEXT_COLS,
+                                  line_count, next_index);
+}
+
+static int page_end_for_start(int start_index, int cols, int page_text_rows)
+{
+    GospelLine scratch[GOSPEL_MAX_LINES];
     int line_count = 0;
     int next_index = start_index;
 
-    gospel_build_page_lines(start_index, scratch, GOSPEL_PAGE_TOTAL_TEXT_ROWS,
-                            &line_count, &next_index);
+    page_text_rows = gospel_clamp_int(page_text_rows, 1, GOSPEL_MAX_LINES);
+    gospel_build_page_lines_width(start_index, scratch, page_text_rows, cols,
+                                  &line_count, &next_index);
     return next_index;
 }
 
-int gospel_find_previous_page_start(int current_index)
+int gospel_find_previous_page_start_width(int current_index, int cols, int page_text_rows)
 {
     if (current_index <= 0)
         return 0;
@@ -160,7 +178,7 @@ int gospel_find_previous_page_start(int current_index)
 
     for (int candidate = best; candidate >= 0 && current_index - candidate < 24; candidate--)
     {
-        int end = page_end_for_start(candidate);
+        int end = page_end_for_start(candidate, cols, page_text_rows);
         if (end == current_index || end > current_index)
             best = candidate;
         else
@@ -168,4 +186,10 @@ int gospel_find_previous_page_start(int current_index)
     }
 
     return best;
+}
+
+int gospel_find_previous_page_start(int current_index)
+{
+    return gospel_find_previous_page_start_width(current_index, GOSPEL_TEXT_COLS,
+                                                GOSPEL_PAGE_TOTAL_TEXT_ROWS);
 }

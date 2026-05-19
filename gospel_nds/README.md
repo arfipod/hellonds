@@ -11,20 +11,23 @@ Signature: Angel R.
   the four gospels.
 - Citation search: selector for gospel, chapter, and verse.
 - Random gospel: opens a random citation.
-- Book mode: uses both screens as full pages with multiple verses.
+- Horizontal book mode: uses both screens as full pages with multiple verses.
+- Vertical book mode: rotates the pages for a Hotel Dusk-style sideways DS.
 
 ## Controls
 
 - Menu: `A` continuous reading, `B` citation search, `X` random citation, `Y`
-  book mode.
+  horizontal book mode, `SELECT` vertical book mode.
 - Reader: `A`, `R`, or right advances; `L` or left goes back; up/down scroll
-  long text; `Y` toggles book mode; `SELECT` opens citation search; `B` returns
-  to the menu.
+  long text; `Y` opens horizontal book mode; `START` opens vertical book mode;
+  `SELECT` opens citation search; `B` returns to the menu.
 - Book mode: `A`, `R`, or right turns the page forward; `L` or left turns the
-  page back; `Y` returns to the normal reader; `SELECT` opens citation search;
-  `X` opens a random citation; `B` returns to the menu.
+  page back; `START` switches between horizontal and vertical layouts; `Y`
+  returns to the normal reader; `SELECT` opens citation search; `X` opens a
+  random citation; `B` returns to the menu.
 - Search: left/right changes the field, up/down adjusts the value, `L`/`R`
-  make larger jumps, `A` opens the citation, and `Y` opens it in book mode.
+  make larger jumps, `A` opens the citation, `Y` opens it in horizontal book
+  mode, and `START` opens it in vertical book mode.
 
 ## Architecture
 

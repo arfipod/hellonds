@@ -19,8 +19,6 @@ int main(void)
     gospel_console_init(&top_console, &bottom_console);
     gospel_app_init(&top_console, &bottom_console);
 
-    irqInit();
-    irqEnable(IRQ_VBLANK);
     timerStart(0, ClockDivider_1, 0, NULL);
     timerStart(1, ClockDivider_1024, 0, NULL);
     keysSetRepeat(24, 8);

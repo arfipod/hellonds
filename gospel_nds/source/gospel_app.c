@@ -5,6 +5,7 @@
 #include "gospel_app.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #include "gospel_console.h"
 #include "gospel_data.h"
@@ -26,11 +27,18 @@ typedef enum
     PICK_VERSE
 } PickerField;
 
+typedef enum
+{
+    BOOK_HORIZONTAL,
+    BOOK_VERTICAL
+} BookLayout;
+
 static PrintConsole *top_console;
 static PrintConsole *bottom_console;
 
 static AppScreen screen = SCREEN_MENU;
 static PickerField picker_field = PICK_BOOK;
+static BookLayout book_layout = BOOK_HORIZONTAL;
 
 static int current_index = 0;
 static int scroll_line = 0;
@@ -40,6 +48,7 @@ static int picker_chapter = 1;
 static int picker_verse = 1;
 static bool dirty_top = true;
 static bool dirty_bottom = true;
+static bool sideways_font_active = false;
 
 void gospel_app_init(PrintConsole *top, PrintConsole *bottom)
 {
@@ -86,6 +95,28 @@ static void set_current_index(int index)
     dirty_bottom = true;
 }
 
+static void set_screen(AppScreen next_screen)
+{
+    screen = next_screen;
+    dirty_top = true;
+    dirty_bottom = true;
+}
+
+static void set_book_layout(BookLayout layout)
+{
+    book_layout = layout;
+    set_screen(SCREEN_BOOK);
+}
+
+static void set_sideways_font(bool sideways)
+{
+    if (sideways_font_active == sideways)
+        return;
+
+    gospel_console_set_sideways(top_console, bottom_console, sideways);
+    sideways_font_active = sideways;
+}
+
 static void go_random(void)
 {
     gospel_random_mix(((uint32_t)timerTick(0) << 16) ^ timerTick(1));
@@ -112,6 +143,7 @@ static void go_selected_citation(void)
 
 static void draw_menu_top(void)
 {
+    set_sideways_font(false);
     gospel_console_clear(top_console);
     printf("EVANGELIO NDS\n");
     printf("Angel R.\n");
@@ -128,13 +160,14 @@ static void draw_menu_top(void)
 
 static void draw_menu_bottom(void)
 {
+    set_sideways_font(false);
     gospel_console_clear(bottom_console);
     printf("A  Lectura seguida\n");
     printf("B  Buscar por cita\n");
     printf("X  Evangelio al azar\n");
-    printf("Y  Modo libro\n\n");
-    printf("START tambien empieza\n");
-    printf("la lectura desde Mateo 1,1.");
+    printf("Y  Libro horizontal\n");
+    printf("SELECT Libro vertical\n\n");
+    printf("START tambien empieza\nMateo 1,1.");
 }
 
 static void draw_reader_top(void)
@@ -149,6 +182,7 @@ static void draw_reader_top(void)
     int max_scroll = wrapped_count > GOSPEL_TEXT_ROWS ? wrapped_count - GOSPEL_TEXT_ROWS : 0;
     scroll_line = gospel_clamp_int(scroll_line, 0, max_scroll);
 
+    set_sideways_font(false);
     gospel_console_clear(top_console);
     printf("%-31s\n", header);
     printf("-------------------------------\n");
@@ -170,15 +204,16 @@ static void draw_reader_bottom(void)
 {
     const GospelVerse *verse = &gospel_verses[current_index];
 
+    set_sideways_font(false);
     gospel_console_clear(bottom_console);
     printf("%s %d,%d\n", verse->book, verse->chapter, verse->verse);
-    printf("A/R/Derecha  siguiente\n");
-    printf("L/Izquierda   anterior\n");
-    printf("Arriba/Abajo  desplazar\n");
-    printf("B             menu\n");
-    printf("SELECT        buscar cita\n");
-    printf("Y             modo libro\n");
-    printf("X             azar");
+    printf("A/R/Derecha siguiente\n");
+    printf("L/Izq       anterior\n");
+    printf("Arr/Abj     desplazar\n");
+    printf("SELECT      buscar\n");
+    printf("Y           libro H\n");
+    printf("START       libro V\n");
+    printf("B menu      X azar");
 }
 
 static void print_page_half(PrintConsole *console, GospelLine lines[], int offset)
@@ -189,12 +224,13 @@ static void print_page_half(PrintConsole *console, GospelLine lines[], int offse
         printf("%-31s\n", lines[offset + row]);
 }
 
-static void draw_book(void)
+static void draw_book_horizontal(void)
 {
     GospelLine text_lines[GOSPEL_PAGE_TOTAL_TEXT_ROWS];
     GospelLine lines[GOSPEL_PAGE_TOTAL_ROWS];
     int count = 0;
 
+    set_sideways_font(false);
     gospel_build_page_lines(current_index, text_lines, GOSPEL_PAGE_TOTAL_TEXT_ROWS,
                             &count, &next_page_index);
 
@@ -211,17 +247,82 @@ static void draw_book(void)
             gospel_copy_line(lines[GOSPEL_PAGE_ROWS + i], text_lines[second_page_index]);
     }
 
-    snprintf(lines[GOSPEL_PAGE_ROWS - 1], GOSPEL_LINE_LEN, "Y normal  A pag  SEL cita");
+    snprintf(lines[GOSPEL_PAGE_ROWS - 1], GOSPEL_LINE_LEN, "Y normal A pag START vert");
     snprintf(lines[GOSPEL_PAGE_TOTAL_ROWS - 1], GOSPEL_LINE_LEN, "B menu   X azar   L atras");
 
     print_page_half(top_console, lines, 0);
     print_page_half(bottom_console, lines, GOSPEL_PAGE_ROWS);
 }
 
+static void print_sideways_page(PrintConsole *console, GospelLine lines[], int offset)
+{
+    gospel_console_clear(console);
+    consoleSelect(console);
+
+    for (int row = 0; row < GOSPEL_SIDEWAYS_ROWS; row++)
+    {
+        const char *line = lines[offset + row];
+        int len = (int)strlen(line);
+
+        for (int col = 0; col < GOSPEL_SIDEWAYS_COLS; col++)
+        {
+            unsigned char ch = col < len ? (unsigned char)line[col] : ' ';
+            int physical_x = GOSPEL_SIDEWAYS_ROWS - 1 - row;
+            int physical_y = col;
+
+            if (ch != ' ')
+            {
+                consoleSetCursor(console, physical_x, physical_y);
+                putchar(ch);
+            }
+        }
+    }
+}
+
+static void draw_book_vertical(void)
+{
+    GospelLine text_lines[GOSPEL_SIDEWAYS_TOTAL_TEXT_ROWS];
+    GospelLine lines[GOSPEL_SIDEWAYS_ROWS * 2];
+    int count = 0;
+
+    set_sideways_font(true);
+    gospel_build_page_lines_width(current_index, text_lines,
+                                  GOSPEL_SIDEWAYS_TOTAL_TEXT_ROWS,
+                                  GOSPEL_SIDEWAYS_COLS, &count, &next_page_index);
+
+    for (int i = 0; i < GOSPEL_SIDEWAYS_ROWS * 2; i++)
+        lines[i][0] = '\0';
+
+    for (int i = 0; i < GOSPEL_SIDEWAYS_TEXT_ROWS; i++)
+    {
+        if (i < count)
+            gospel_copy_line(lines[i], text_lines[i]);
+
+        int second_page_index = GOSPEL_SIDEWAYS_TEXT_ROWS + i;
+        if (second_page_index < count)
+            gospel_copy_line(lines[GOSPEL_SIDEWAYS_ROWS + i], text_lines[second_page_index]);
+    }
+
+    snprintf(lines[GOSPEL_SIDEWAYS_ROWS - 1], GOSPEL_LINE_LEN, "Y normal A pag START H");
+    snprintf(lines[GOSPEL_SIDEWAYS_ROWS * 2 - 1], GOSPEL_LINE_LEN, "B menu X azar L atras");
+
+    print_sideways_page(top_console, lines, 0);
+    print_sideways_page(bottom_console, lines, GOSPEL_SIDEWAYS_ROWS);
+}
+
+static void draw_book(void)
+{
+    if (book_layout == BOOK_VERTICAL)
+        draw_book_vertical();
+    else
+        draw_book_horizontal();
+}
+
 static void draw_picker_top(void)
 {
     const GospelBook *book = &gospel_books[picker_book];
 
+    set_sideways_font(false);
     gospel_console_clear(top_console);
     printf("BUSCAR POR CITA\n\n");
     printf("%c Libro:     %s\n", picker_field == PICK_BOOK ? '>' : ' ', book->name);
@@ -235,12 +336,14 @@ static void draw_picker_top(void)
 
 static void draw_picker_bottom(void)
 {
+    set_sideways_font(false);
     gospel_console_clear(bottom_console);
     printf("Izq/Der  cambiar campo\n");
     printf("Arr/Abj  ajustar valor\n");
     printf("L/R      saltos rapidos\n");
     printf("A        leer cita\n");
-    printf("Y        leer como libro\n");
+    printf("Y        libro H\n");
+    printf("START    libro V\n");
     printf("B        menu\n");
     printf("X        azar");
 }
@@ -286,9 +389,7 @@ static void handle_menu(uint32_t down)
     else if (down & KEY_B)
     {
         picker_from_current();
-        screen = SCREEN_PICKER;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_PICKER);
     }
     else if (down & KEY_X)
     {
@@ -297,7 +398,12 @@ static void handle_menu(uint32_t down)
     else if (down & KEY_Y)
     {
         set_current_index(current_index);
-        screen = SCREEN_BOOK;
+        set_book_layout(BOOK_HORIZONTAL);
+    }
+    else if (down & KEY_SELECT)
+    {
+        set_current_index(current_index);
+        set_book_layout(BOOK_VERTICAL);
     }
 }
 
@@ -305,26 +411,26 @@ static void handle_reader(uint32_t down)
 {
     if (down & KEY_B)
     {
-        screen = SCREEN_MENU;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_MENU);
         return;
     }
 
     if (down & KEY_Y)
     {
-        screen = SCREEN_BOOK;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_book_layout(BOOK_HORIZONTAL);
+        return;
+    }
+
+    if (down & KEY_START)
+    {
+        set_book_layout(BOOK_VERTICAL);
         return;
     }
 
     if (down & KEY_SELECT)
     {
         picker_from_current();
-        screen = SCREEN_PICKER;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_PICKER);
         return;
     }
 
@@ -354,26 +460,26 @@ static void handle_book(uint32_t down)
 {
     if (down & KEY_B)
     {
-        screen = SCREEN_MENU;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_MENU);
         return;
     }
 
     if (down & KEY_Y)
     {
-        screen = SCREEN_READER;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_READER);
+        return;
+    }
+
+    if (down & KEY_START)
+    {
+        set_book_layout(book_layout == BOOK_VERTICAL ? BOOK_HORIZONTAL : BOOK_VERTICAL);
         return;
     }
 
     if (down & KEY_SELECT)
     {
         picker_from_current();
-        screen = SCREEN_PICKER;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_PICKER);
         return;
     }
 
@@ -386,7 +492,13 @@ static void handle_book(uint32_t down)
     if (down & (KEY_A | KEY_RIGHT | KEY_R))
         set_current_index(next_page_index);
     else if (down & (KEY_LEFT | KEY_L))
-        set_current_index(gospel_find_previous_page_start(current_index));
+    {
+        if (book_layout == BOOK_VERTICAL)
+            set_current_index(gospel_find_previous_page_start_width(
+                current_index, GOSPEL_SIDEWAYS_COLS, GOSPEL_SIDEWAYS_TOTAL_TEXT_ROWS));
+        else
+            set_current_index(gospel_find_previous_page_start(current_index));
+    }
 }
 
 static void adjust_picker_value(int delta)
@@ -406,9 +518,7 @@ static void handle_picker(uint32_t down)
 {
     if (down & KEY_B)
     {
-        screen = SCREEN_MENU;
-        dirty_top = true;
-        dirty_bottom = true;
+        set_screen(SCREEN_MENU);
         return;
     }
 
@@ -422,7 +532,15 @@ static void handle_picker(uint32_t down)
     {
         go_selected_citation();
         if (screen == SCREEN_READER)
-            screen = SCREEN_BOOK;
+            set_book_layout(BOOK_HORIZONTAL);
+        return;
+    }
+
+    if (down & KEY_START)
+    {
+        go_selected_citation();
+        if (screen == SCREEN_READER)
+            set_book_layout(BOOK_VERTICAL);
         return;
     }
 
