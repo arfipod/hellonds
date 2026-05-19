@@ -14,6 +14,12 @@ make clean
 make
 
 echo
+echo "== Building Flappy Test project =="
+cd "$ROOT/flappy_test"
+make clean
+make
+
+echo
 echo "== Checking HTTPS dependencies =="
 HAVE_CURL=0
 HAVE_MBEDTLS=0

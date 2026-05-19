@@ -17,6 +17,10 @@ build/
 *.bak
 *~
 
+# Python helper caches
+__pycache__/
+*.py[cod]
+
 # Editor and OS files
 .vscode/
 .idea/

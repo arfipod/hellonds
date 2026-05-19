@@ -49,6 +49,13 @@ There are two independent projects:
    - More useful for modern REST APIs.
    - Requires extra packages.
 
+3. `flappy_test`
+   - Uses `libnds`.
+   - Complete Flappy Bird-style game for Nintendo DS.
+   - Gameplay is on the top screen.
+   - The lower touch screen is used to flap and shows status text.
+   - Does not require extra packages beyond `blocksds-toolchain`.
+
 ---
 
 ## Important concepts
@@ -161,7 +168,27 @@ From this package root:
 ./scripts/build_all.sh
 ```
 
-The script builds HTTP first, then HTTPS if libcurl/Mbed TLS/zlib are installed.
+The script builds HTTP first, then `flappy_test`, then HTTPS if libcurl/Mbed
+TLS/zlib are installed.
+
+---
+
+## 4a. Build the Flappy Test game
+
+```bash
+cd flappy_test
+make clean
+make
+```
+
+Expected output:
+
+```text
+flappy_test.nds
+```
+
+Copy `flappy_test.nds` to your Nintendo DS or DSi SD card and launch it from
+TWiLight Menu++ or another homebrew loader.
 
 ---
 
